@@ -1,0 +1,1 @@
+THEREFORE IF "X > 5" THEN "2X > 10" ELSE "2X <= 10".
