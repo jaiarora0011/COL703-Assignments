@@ -1,1 +1,6 @@
 *.zip
+*.sig
+*.desc
+*.grm.sml
+*.lex.sml
+.cm
