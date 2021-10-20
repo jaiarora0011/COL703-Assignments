@@ -1,0 +1,1 @@
+"k" IF "log_2{2}^k where k > 0". "c+b == 2" IFF "c" AND "b are INTEGERS" IFF "c = 0 && b = 2" OR "Vice-Versa" OR "c = b = 1". IF "a greater than b" THEN IF "a is greater than c" THEN "a is greatest" ELSE "c is greatest" ELSE IF "b is greater than c" THEN "b is greatest" ELSE "c is greatest". THEREFORE "Sound logic is ensured".

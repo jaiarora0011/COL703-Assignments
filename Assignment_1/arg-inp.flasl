@@ -1,0 +1,8 @@
+IF "  prices    rise" THEN "the poor and the salaried class will be unhappy". IF "taxes are increased"
+THEN "the businessmen will be unhappy". IF ("the poor and the salaried class are unhappy" OR
+"the businessmen are unhappy") THEN NOT "the Government will be re-elected". "Inflation rises" IF
+"Government expenditure exceeds its revenue". IF NOT ("taxes are increased" OR "the Government
+resorts to deficit financing" OR "the Government takes a loan") THEN "Government expenditure will
+exceed its revenue". IF "the Government resorts to deficit financing" THEN "inflation rises". IF "inflation
+rises" THEN "prices rise". "the Government will be re-elected". THEREFORE "the Government takes
+a loan".

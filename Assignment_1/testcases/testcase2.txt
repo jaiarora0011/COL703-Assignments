@@ -1,0 +1,1 @@
+IF NOT ("BLUE" OR "GREEN") THEN IF NOT "CYAN & PURPLE" THEN "RED" ELSE "Wl-lITE" OR "BL@CK!". THEREFORE "The choice of color is BIn{a}ry".
