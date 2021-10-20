@@ -2,11 +2,14 @@ CM.make("$/basis.cm");
 CM.make("$/ml-yacc-lib.cm");
 CM.make "sources.cm";
 
-use "datatypes.sml";
+use "proptableau.sml";
 use "grammar.grm.sig";
 use "lexer.lex.sml";
 use "grammar.grm.sml";
 use "flaslParser.sml";
+
+open Flasl;
+open Propositions;
 
 Control.Print.printDepth := 1000;
 Control.Print.stringDepth := 1000;
@@ -18,7 +21,10 @@ val out = if length l > 1 then hd (tl l) else "arg.out";
 
 val parsedAST = parse (makeLex inp);
 
-val resOut = Propositions.ArgumentRepr parsedAST;
+val rewrite = rewriteITE parsedAST;
 
+val resOut = argumentRepr rewrite;
+
+val str = ast2flasl rewrite;
 
 OS.Process.exit(OS.Process.success): unit;
