@@ -16,8 +16,8 @@ Control.Print.stringDepth := 1000;
 
 val l = CommandLine.arguments()
 
-val inp = if length l > 0 then hd l else "testcases/arg-inp.flasl";
-val out = if length l > 1 then hd (tl l) else "arg.out";
+val inp = if length l > 0 then hd l else "testcases/govt1.flasl";
+val out = if length l > 1 then hd (tl l) else "output/govt1.out";
 
 val parsedAST = parse (makeLex inp);
 

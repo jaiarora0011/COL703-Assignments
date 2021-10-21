@@ -2,6 +2,7 @@ LEXER=lexer
 PARSER=grammar
 FLASL_INP=testcases/god1.flasl
 TAB_OUT=output/god1.out
+DEPS=proptableau.sml flasl2ast.sml lexer.lex grammar.grm datatypes.sml
 
 TESTCASES = $(wildcard testcases/*.flasl)
 OUTPUT = $(patsubst testcases/%.flasl, output/%.out, $(TESTCASES))
