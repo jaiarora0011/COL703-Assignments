@@ -133,6 +133,13 @@ fun getLiteralMapping (literal: Prop) =
     | NOT(ATOM(strr)) => (ATOM(strr), false)
     | _ => raise NotLiteralException
 
+(* To remove duplicate literals from the leaves *)
+fun removeDuplicates l =
+  case l of
+      [] => []
+    | [x] => l
+    | x :: xs => if checkMembership xs x then xs else x :: (removeDuplicates xs)
+
 (*
   This function implements the actual tableau.
   It takes a formula set as input and returns a list of all possible truth assignments for the formula set.
@@ -156,7 +163,7 @@ fun tableauMethod (fs: FormulaSet): TruthAssignment list =
                                                     in
                                                       (tableauMethod l1) @ (tableauMethod l2)
                                                     end)
-                                    else [map getLiteralMapping fs]
+                                    else [map getLiteralMapping (removeDuplicates fs)]
                           end)
                   )
 
