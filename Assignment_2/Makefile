@@ -1,26 +1,23 @@
 LEXER=lexer
 PARSER=grammar
-FLASL_INP=arg-inp.flasl
-SML_OUT=arg.sml
-SML_IN=arg.sml
-FLASL_OUT=arg-out.flasl
+FLASL_INP=testcases/god1.flasl
+TAB_OUT=output/god1.out
+
+TESTCASES = $(wildcard testcases/*.flasl)
+OUTPUT = $(patsubst testcases/%.flasl, output/%.out, $(TESTCASES))
 
 .PHONY: flasl2ast
-
-flasl2ast:
-	sml flasl2ast.sml $(FLASL_INP) $(SML_OUT)
-
+flasl2ast: $(FLASL_INP)
+	sml flasl2ast.sml $(FLASL_INP) $(TAB_OUT)
 
 .PHONY: clean
 
 clean:
-	@rm -f $(LEXER).lex.sml $(PARSER).grm.desc $(PARSER).grm.sig $(PARSER).grm.sml
+	@rm -rf $(LEXER).lex.sml $(PARSER).grm.desc $(PARSER).grm.sig $(PARSER).grm.sml output/*.out .cm
 
 .PHONY: test
 
-test:
-	sml flasl2ast.sml testcase1.txt arg-1.sml
-	sml flasl2ast.sml testcase2.txt arg-2.sml
-	sml flasl2ast.sml testcase3.txt arg-3.sml
-	sml flasl2ast.sml testcase4.txt arg-4.sml
-	sml flasl2ast.sml testcase5.txt arg-5.sml
+test: $(OUTPUT)
+
+output/%.out: testcases/%.flasl
+	CM_VERBOSE=false sml flasl2ast.sml $< $@
