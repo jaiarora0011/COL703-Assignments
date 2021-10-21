@@ -23,6 +23,8 @@ val parsedAST = parse (makeLex inp);
 
 val rewrite = rewriteITE parsedAST;
 
+val set = convertArgumentToFormulaSet rewrite;
+
 val resOut = argumentRepr rewrite;
 
 val str = ast2flasl rewrite;

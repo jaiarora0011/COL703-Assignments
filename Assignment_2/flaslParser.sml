@@ -43,7 +43,7 @@ struct
       else raise FlaslParser.ParseError
     end
 
-  fun output (outfile: string, res: string) =
+  fun output (outfile: string) (res: string) =
     let
       val outstream = TextIO.openOut outfile
     in
