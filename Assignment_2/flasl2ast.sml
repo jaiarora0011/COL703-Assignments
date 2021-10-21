@@ -16,17 +16,13 @@ Control.Print.stringDepth := 1000;
 
 val l = CommandLine.arguments()
 
-val inp = if length l > 0 then hd l else "arg-inp.flasl";
+val inp = if length l > 0 then hd l else "testcases/arg-inp.flasl";
 val out = if length l > 1 then hd (tl l) else "arg.out";
 
 val parsedAST = parse (makeLex inp);
 
-val rewrite = rewriteITE parsedAST;
+val resOut = finalOutput (tableauMethod (convertArgumentToFormulaSet (rewriteITE parsedAST)));
 
-val set = convertArgumentToFormulaSet rewrite;
-
-val resOut = argumentRepr rewrite;
-
-val str = ast2flasl rewrite;
+val _ = output out resOut;
 
 OS.Process.exit(OS.Process.success): unit;
