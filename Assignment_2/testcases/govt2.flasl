@@ -1,4 +1,4 @@
-IF "  prices    rise" THEN "the poor and the salaried class will be unhappy". IF "taxes are increased"
+IF "prices rise" THEN "the poor and the salaried class will be unhappy". IF "taxes are increased"
 THEN "the businessmen will be unhappy". IF ("the poor and the salaried class are unhappy" OR
 "the businessmen are unhappy") THEN NOT "the Government will be re-elected". "Inflation rises" IF
 "Government expenditure exceeds its revenue". IF NOT ("taxes are increased" OR "the Government
