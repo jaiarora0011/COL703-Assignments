@@ -59,8 +59,8 @@ val b = checkComplimentaryPair [ATOM "ABC", AND(ATOM "XYZ", ATOM "XYZ"), NOT(AND
 (* Checks if the given propositional formula is a literal *)
 fun checkLiteral (p: Prop) =
   case p of
-      ATOM(str) => true
-    | NOT(ATOM(str)) => true
+      ATOM(strr) => true
+    | NOT(ATOM(strr)) => true
     | _ => false
 
 (* Checks if an elongation rule can be applied to the given formula *)
@@ -129,8 +129,8 @@ fun applyBranching(fs: FormulaSet): FormulaSet * FormulaSet =
 (* Given a literal at the leaf, this function returns the truth assignment mapping for that literal *)
 fun getLiteralMapping (literal: Prop) =
   case literal of
-      ATOM(str) => (ATOM(str), true)
-    | NOT(ATOM(str)) => (ATOM(str), false)
+      ATOM(strr) => (ATOM(strr), true)
+    | NOT(ATOM(strr)) => (ATOM(strr), false)
     | _ => raise NotLiteralException
 
 (*
@@ -166,7 +166,7 @@ fun boolToString(false) = "False"
 fun truthAssignmentToString(tau: TruthAssignment): string =
   case tau of
       [] => ""
-    | (ATOM(str), b) :: xs => str ^ " <-- " ^ (boolToString b) ^ "\n" ^ (truthAssignmentToString xs)
+    | (ATOM(strr), b) :: xs => strr ^ " <-- " ^ (boolToString b) ^ "\n" ^ (truthAssignmentToString xs)
     | _ => raise NotLiteralException
 
 fun finalOutput(falsifying: TruthAssignment list): string =
