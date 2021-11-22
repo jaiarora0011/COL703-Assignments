@@ -1,14 +1,33 @@
 use "datatypes.sml";
-open Propositions;
 open List;
-type FormulaSet = Prop list (* The formula set is just a list of formulas *)
-type TruthAssignment = (Prop * bool) list
+structure MyFOL : FOL =
+  struct
+    datatype term = VAR of string
+                  | FUN of string * term list
+                  | CONST of string (* for generated constants only *)
+    datatype Pred = FF (* special constant for closing a tableau path *)
+                  | ATOM of string * term list
+                  | NOT of Pred
+                  | AND of Pred * Pred
+                  | OR of Pred * Pred
+                  | COND of Pred * Pred
+                  | BIC of Pred * Pred
+                  | ITE of Pred * Pred * Pred
+                  | ALL of term * Pred
+                  | EX of term * Pred
+    datatype Argument =  HENCE of Pred list * Pred
+    fun mktableau (l: Pred list, p: Pred) = () (* outputs file "tableau.dot" in dot format *)
 
-exception NotLiteralException
+    exception NotVAR (* Binding term in a quantified formula is not a variable *)
+    exception NotWFT (* term is not well-formed *)
+    exception NotWFP (* Predicate is not well-formed *)
+    exception NotWFA (* Argument is not well-formed *)
+    exception NotClosed (* a formula is not closed *)
+  end
 
 
 (* Need to rewrite the IF-THEN-ELSE construct as it has no corresponding tableau rules*)
-fun rewriteITEprop(prop: Prop) =
+(*fun rewriteITEprop(prop: Prop) =
   case prop of
       ITE(a, b, c) => AND(COND(rewriteITEprop a, rewriteITEprop b), COND(NOT(rewriteITEprop a), rewriteITEprop c))
     | NOT(a) => NOT(rewriteITEprop a)
@@ -16,24 +35,24 @@ fun rewriteITEprop(prop: Prop) =
     | OR(a, b) => OR(rewriteITEprop a, rewriteITEprop b)
     | COND(a, b) => COND(rewriteITEprop a, rewriteITEprop b)
     | BIC(a, b) => BIC(rewriteITEprop a, rewriteITEprop b)
-    | _ => prop
+    | _ => prop*)
 
-fun rewriteITE(arg: Argument) =
+(*fun rewriteITE(arg: Argument) =
   let
     val HENCE(l, p) = arg
   in
     HENCE(map rewriteITEprop l, rewriteITEprop p)
   end
-
+*)
 (*
   Takes an Argument as input and converts it into a set of formulae by taking the NOT of the conclusion and adding it to the list of antecedents
 *)
-fun convertArgumentToFormulaSet(arg: Argument) : FormulaSet =
+(*fun convertArgumentToFormulaSet(arg: Argument) : FormulaSet =
   let
     val HENCE(l, p) = arg
   in
     l @ [NOT p]
-  end
+  end*)
 
 (* Function for checking if an element exists in a list *)
 fun checkMembership l elem =
@@ -43,12 +62,12 @@ fun checkMembership l elem =
   Checks if the given formula set has any complimentary formula pair. If yes, then return true, else false.
   If there is a complimentary pair, then the corresponding path in the tableau is closed.
 *)
-fun checkComplimentaryPair (fs: FormulaSet) =
+(*fun checkComplimentaryPair (fs: FormulaSet) =
   case fs of
     [] => false
   | [a] => false
   | NOT(p) :: xs => if checkMembership xs p then true else checkComplimentaryPair xs
-  | p :: xs => if checkMembership xs (NOT(p)) then true else checkComplimentaryPair xs
+  | p :: xs => if checkMembership xs (NOT(p)) then true else checkComplimentaryPair xs*)
 
 (*val x = checkComplimentaryPair []
 val y = checkComplimentaryPair [NOT(ATOM "ABC"), OR(COND(ATOM "BC", ATOM "AC"), ATOM "AB")]
@@ -57,30 +76,30 @@ val a = checkComplimentaryPair [NOT(NOT(NOT(AND(ATOM "ABC", ATOM "DEF")))), NOT(
 val b = checkComplimentaryPair [ATOM "ABC", AND(ATOM "XYZ", ATOM "XYZ"), NOT(AND(ATOM "XYZ", ATOM "XYZ"))]*)
 
 (* Checks if the given propositional formula is a literal *)
-fun checkLiteral (p: Prop) =
+(*fun checkLiteral (p: Prop) =
   case p of
       ATOM(strr) => true
     | NOT(ATOM(strr)) => true
     | _ => false
-
+*)
 (* Checks if an elongation rule can be applied to the given formula *)
-fun checkElongation (p: Prop) =
+(*fun checkElongation (p: Prop) =
   case p of
       NOT(NOT(x)) => true
     | AND(x, y) => true
     | NOT(OR(x, y)) => true
     | NOT(COND(x, y)) => true
-    | _ => false
+    | _ => false*)
 
 (* Checks if a branching rule can be applied to the given formula *)
-fun checkBranching (p: Prop) =
+(*fun checkBranching (p: Prop) =
   case p of
       NOT(AND(x, y)) => true
     | OR(x, y) => true
     | COND(x, y) => true
     | BIC(x, y) => true
     | NOT(BIC(x, y)) => true
-    | _ => false
+    | _ => false*)
 
 (*
   Returns a 3-tuple of integers given a formula set -- (x, y, z)
@@ -90,7 +109,7 @@ fun checkBranching (p: Prop) =
 
   NOTE: x + y + z = sizeof(FormulaSet) always
 *)
-fun getStats (fs: FormulaSet) : int * int * int =
+(*fun getStats (fs: FormulaSet) : int * int * int =
   case fs of
       [] => (0, 0, 0)
     | x :: xs => (let
@@ -99,20 +118,20 @@ fun getStats (fs: FormulaSet) : int * int * int =
                     if checkLiteral x then (n1+1, n2, n3)
                     else if checkElongation x then (n1, n2+1, n3)
                     else (n1, n2, n3+1)
-                  end)
+                  end)*)
 
 (* This function takes a formula set and applies an elongation rule to the first formula where it can be applied *)
-fun applyElongation(fs: FormulaSet) =
+(*fun applyElongation(fs: FormulaSet) =
   case fs of
       [] => []
     | NOT(NOT(x)) :: xs => x :: xs
     | AND(x, y) :: xs => x :: y :: xs
     | NOT(OR(x, y)) :: xs => (NOT(x)) :: (NOT(y)) :: xs
     | NOT(COND(x, y)) :: xs => x :: (NOT(y)) :: xs
-    | x :: xs => x :: (applyElongation xs)
+    | x :: xs => x :: (applyElongation xs)*)
 
 (* This function takes a formula set and applies a branching rule to the first formula where it can be applied, and returns a pair of formula sets *)
-fun applyBranching(fs: FormulaSet): FormulaSet * FormulaSet =
+(*fun applyBranching(fs: FormulaSet): FormulaSet * FormulaSet =
   case fs of
       [] => ([], [])
     | NOT(AND(x, y)) :: xs => (NOT(x) :: xs, NOT(y) :: xs)
@@ -124,21 +143,21 @@ fun applyBranching(fs: FormulaSet): FormulaSet * FormulaSet =
                     val (l1, l2) = applyBranching xs
                   in
                     (x :: l1, x :: l2)
-                  end)
+                  end)*)
 
 (* Given a literal at the leaf, this function returns the truth assignment mapping for that literal *)
-fun getLiteralMapping (literal: Prop) =
+(*fun getLiteralMapping (literal: Prop) =
   case literal of
       ATOM(strr) => (ATOM(strr), true)
     | NOT(ATOM(strr)) => (ATOM(strr), false)
     | _ => raise NotLiteralException
-
+*)
 (* To remove duplicate literals from the leaves *)
-fun removeDuplicates l =
+(*fun removeDuplicates l =
   case l of
       [] => []
     | [x] => l
-    | x :: xs => if checkMembership xs x then xs else x :: (removeDuplicates xs)
+    | x :: xs => if checkMembership xs x then xs else x :: (removeDuplicates xs)*)
 
 (*
   This function implements the actual tableau.
@@ -150,7 +169,7 @@ fun removeDuplicates l =
   At some point, we will be left with a set of only literals (without any complimentary pairs), at which point we can get a truth assignment.
   We collect all possible truth assignments we can get and return a list.
 *)
-fun tableauMethod (fs: FormulaSet): TruthAssignment list =
+(*fun tableauMethod (fs: FormulaSet): TruthAssignment list =
   case fs of
       [] => []
     | x :: xs => (if checkComplimentaryPair fs then []
@@ -165,12 +184,12 @@ fun tableauMethod (fs: FormulaSet): TruthAssignment list =
                                                     end)
                                     else [map getLiteralMapping (removeDuplicates fs)]
                           end)
-                  )
+                  )*)
 
-fun boolToString(false) = "False"
-  | boolToString(true) = "True"
+(*fun boolToString(false) = "False"
+  | boolToString(true) = "True"*)
 
-fun truthAssignmentToString(tau: TruthAssignment): string =
+(*fun truthAssignmentToString(tau: TruthAssignment): string =
   case tau of
       [] => ""
     | (ATOM(strr), b) :: xs => strr ^ " <-- " ^ (boolToString b) ^ "\n" ^ (truthAssignmentToString xs)
@@ -180,4 +199,4 @@ fun finalOutput(falsifying: TruthAssignment list): string =
   case falsifying of
       [] => "No Falsifying assignment found -- The input formula is valid (A tautology)"
     | [t] => "=Mapping Starts\n" ^ (truthAssignmentToString t) ^ "=Mapping Ends\n"
-    | t :: xs => "=Mapping Starts\n" ^ (truthAssignmentToString t) ^ "=Mapping Ends\n" ^ (finalOutput xs)
+    | t :: xs => "=Mapping Starts\n" ^ (truthAssignmentToString t) ^ "=Mapping Ends\n" ^ (finalOutput xs)*)
