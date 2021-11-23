@@ -75,3 +75,5 @@ fun output (outfile: string) (res: string) =
   in
     TextIO.output(outstream, res)
   end
+
+fun boolAnd (b1: bool, b2: bool) = b1 andalso b2

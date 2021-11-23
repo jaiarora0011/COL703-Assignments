@@ -1,31 +1,3 @@
-use "datatypes.sml";
-open List;
-structure MyFOL : FOL =
-  struct
-    datatype term = VAR of string
-                  | FUN of string * term list
-                  | CONST of string (* for generated constants only *)
-    datatype Pred = FF (* special constant for closing a tableau path *)
-                  | ATOM of string * term list
-                  | NOT of Pred
-                  | AND of Pred * Pred
-                  | OR of Pred * Pred
-                  | COND of Pred * Pred
-                  | BIC of Pred * Pred
-                  | ITE of Pred * Pred * Pred
-                  | ALL of term * Pred
-                  | EX of term * Pred
-    datatype Argument =  HENCE of Pred list * Pred
-    fun mktableau (l: Pred list, p: Pred) = () (* outputs file "tableau.dot" in dot format *)
-
-    exception NotVAR (* Binding term in a quantified formula is not a variable *)
-    exception NotWFT (* term is not well-formed *)
-    exception NotWFP (* Predicate is not well-formed *)
-    exception NotWFA (* Argument is not well-formed *)
-    exception NotClosed (* a formula is not closed *)
-  end
-
-
 (* Need to rewrite the IF-THEN-ELSE construct as it has no corresponding tableau rules*)
 (*fun rewriteITEprop(prop: Prop) =
   case prop of

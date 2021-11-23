@@ -4,8 +4,8 @@ FLASL_INP=testcases/god1.flasl
 TAB_OUT=output/god1.out
 DEPS=proptableau.sml flasl2ast.sml lexer.lex grammar.grm datatypes.sml
 
-TESTCASES = $(wildcard testcases/*.flasl)
-OUTPUT = $(patsubst testcases/%.flasl, output/%.out, $(TESTCASES))
+TESTCASES = $(wildcard testcases/*.sml)
+OUTPUT = $(patsubst testcases/%.sml, output/%.out, $(TESTCASES))
 
 .PHONY: flasl2ast
 flasl2ast: $(FLASL_INP)
@@ -20,5 +20,5 @@ clean:
 
 test: $(OUTPUT)
 
-output/%.out: testcases/%.flasl
+output/%.out: testcases/%.sml
 	CM_VERBOSE=false sml flasl2ast.sml $< $@
