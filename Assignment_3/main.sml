@@ -16,6 +16,4 @@ use inp;
 
 val x : (string, int) map = empty;
 
-(*val _ = output out resOut;*)
-
 OS.Process.exit(OS.Process.success): unit;

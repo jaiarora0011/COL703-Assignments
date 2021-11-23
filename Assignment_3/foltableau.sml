@@ -1,7 +1,7 @@
 use "datatypes.sml";
 open List;
 
-structure MyFOL : FOL =
+structure MyFOL =
   struct
     datatype term = VAR of string
                   | FUN of string * term list
