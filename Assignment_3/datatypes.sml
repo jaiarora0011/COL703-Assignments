@@ -52,3 +52,21 @@ fun output (outfile: string) (res: string) =
   end
 
 fun boolAnd (b1: bool, b2: bool) = b1 andalso b2
+
+fun checkMembership l elem = List.exists (fn x => x = elem) l
+
+fun listRemove l elem = List.filter (fn x => x <> elem) l
+
+fun splitList l =
+  case l of
+    [] => ([], [])
+  | (x , y) :: xs => (let
+                        val (l1, l2) = splitList xs
+                      in
+                        (x :: l1, y :: l2)
+                      end)
+
+fun listUnion (l1, l2) =
+  case l1 of
+    [] => l2
+  | x :: xs => if (checkMembership l2 x) then listUnion (xs, l2) else x :: (listUnion (xs, l2))
