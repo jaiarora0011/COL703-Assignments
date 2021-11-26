@@ -1,5 +1,5 @@
 TESTCASES = $(wildcard testcases/*.sml)
-OUTPUT = $(patsubst testcases/%.sml, output/%.out, $(TESTCASES))
+OUTPUT = $(patsubst testcases/%.sml, output/%.dot, $(TESTCASES))
 
 .PHONY: all
 all: test
@@ -7,11 +7,13 @@ all: test
 .PHONY: clean
 
 clean:
-	@rm -rf output/*.out
+	@cd output && rm -rf *.dot *.aux *.log *.pdf *.tex
 
 .PHONY: test
 
 test: $(OUTPUT)
 
-output/%.out: testcases/%.sml
-	-CM_VERBOSE=false sml main.sml $< $@
+output/%.dot: testcases/%.sml
+	CM_VERBOSE=false sml main.sml $< $@
+	dot2tex $@ > $@.tex
+	cd output && pdflatex $*.dot.tex

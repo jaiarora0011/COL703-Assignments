@@ -70,3 +70,19 @@ fun listUnion (l1, l2) =
   case l1 of
     [] => l2
   | x :: xs => if (checkMembership l2 x) then listUnion (xs, l2) else x :: (listUnion (xs, l2))
+
+fun edgeListRepr (el: (int * int) list) : string =
+  case el of
+    [] => ""
+  | (u, v) :: xs => (Int.toString u) ^ " -> " ^ (Int.toString v) ^ ";\n" ^ (edgeListRepr xs)
+
+fun vertexListRepr (vl: (int * string) list) =
+  case vl of
+    [] => ""
+  | (u, s) :: xs => (Int.toString u) ^ " [texlbl=\"\\underline{" ^ (Int.toString u) ^ ". " ^ s ^ " }\"];\n" ^ (vertexListRepr xs)
+
+
+fun dotFormatRepr vl dir ancestor undir =
+  "digraph{\nnodesep = 0.5;\nranksep = 0.35;\nnode [shape=plaintext];\n" ^ (vertexListRepr vl)
+    ^ "subgraph dir\n{\n" ^ (edgeListRepr dir) ^ "}\nsubgraph ancestor\n{\nedge [dir=back, color=blue, style=dashed]\n"
+      ^ (edgeListRepr ancestor) ^ "}\nsubgraph undir\n{\nedge [dir=none, color=red]\n" ^ (edgeListRepr undir) ^ "}\n}\n"

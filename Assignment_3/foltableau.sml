@@ -63,6 +63,7 @@ structure MyFOL =
       | ITE(x, y, z) => foldl listUnion [] (map predVars [x, y, z])
       | ALL(VAR(x), p) => listRemove (predVars p) x
       | EX(VAR(x), p) => listRemove (predVars p) x
+      | _ => raise NotVAR
 
     fun checkNotVarPred (pd: Pred) : bool =
       case pd of
@@ -170,6 +171,20 @@ structure MyFOL =
       | FUN(f, l) => FUN(f, map (subst s) l)
       | CONST(_) => t
 
+    fun substPred (s: substitution) (pd: Pred) : Pred =
+      case pd of
+        FF => pd
+      | ATOM(a, l) => ATOM(a, map (subst s) l)
+      | NOT(x) => NOT(substPred s x)
+      | AND(x, y) => AND(substPred s x, substPred s y)
+      | OR(x, y) => OR(substPred s x, substPred s y)
+      | COND(x, y) => COND(substPred s x, substPred s y)
+      | BIC(x, y) => BIC(substPred s x, substPred s y)
+      | ITE(x, y, z) => ITE(substPred s x, substPred s y, substPred s z)
+      | ALL(VAR(x), p) => ALL(VAR(x), substPred (removeSubstMapping s x) p)
+      | EX(VAR(x), p) => EX(VAR(x), substPred (removeSubstMapping s x) p)
+      | _ => raise NotVAR
+
     fun differenceHelper (s1: substitution) (domS2: variable list) : substitution =
       case s1 of
         [] => []
@@ -219,6 +234,11 @@ structure MyFOL =
       | (CONST(_), VAR(v)) => [(v, t1)]
       | (CONST(c1), CONST(c2)) => if (c1 <> c2) then raise NotUnifiable else []
       | (_,_) => raise NotUnifiable
+
+    fun mguPred (p1: Pred) (p2: Pred) : substitution =
+      case (p1, p2) of
+        (FF, FF) => []
+      | (ATOM(a1, l1), ATOM(a2, l2)) => if (a1 <> a2) then raise NotUnifiable else mguHelper l1 l2 []
 
     fun mktableau (l: Pred list, p: Pred) = () (* outputs file "tableau.dot" in dot format *)
   end
