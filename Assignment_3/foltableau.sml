@@ -32,6 +32,7 @@ structure MyFOL =
 
     exception NotUnifiable
     exception SymbolNotFound
+    exception FatalError
 
     fun convertArgToPred (arg: Argument) =
       let
@@ -149,7 +150,7 @@ structure MyFOL =
       let
         val HENCE(l, p) = arg
         val predList = l @ [p]
-        val b = List.all (fn ll => ll = []) (map predVars l)
+        val b = List.all (fn ll => (List.length ll) = 0) (map predVars l)
       in
         if b then b else raise NotClosed
       end
@@ -192,7 +193,7 @@ structure MyFOL =
 
     fun difference (s1: substitution) (s2: substitution) : substitution =
       let
-        val (domS2, ranS2) = splitList s2
+        val (domS2, ranS2) = ListPair.unzip s2
       in
         differenceHelper s1 domS2
       end
@@ -239,6 +240,241 @@ structure MyFOL =
       case (p1, p2) of
         (FF, FF) => []
       | (ATOM(a1, l1), ATOM(a2, l2)) => if (a1 <> a2) then raise NotUnifiable else mguHelper l1 l2 []
+      | (_, _) => raise FatalError
 
-    fun mktableau (l: Pred list, p: Pred) = () (* outputs file "tableau.dot" in dot format *)
+    fun rewriteITEpred(pd: Pred) =
+      case pd of
+        ITE(a, b, c) => AND(COND(rewriteITEpred a, rewriteITEpred b), COND(NOT(rewriteITEpred a), rewriteITEpred c))
+      | NOT(a) => NOT(rewriteITEpred a)
+      | AND(a, b) => AND(rewriteITEpred a, rewriteITEpred b)
+      | OR(a, b) => OR(rewriteITEpred a, rewriteITEpred b)
+      | COND(a, b) => COND(rewriteITEpred a, rewriteITEpred b)
+      | BIC(a, b) => BIC(rewriteITEpred a, rewriteITEpred b)
+      | ALL(x, p) => ALL(x, rewriteITEpred p)
+      | EX(x, p) => EX(x, rewriteITEpred p)
+      | _ => pd
+
+    fun rewriteITE(arg: Argument) =
+      let
+        val HENCE(l, p) = arg
+      in
+        HENCE(map rewriteITEpred l, rewriteITEpred p)
+    end
+
+    fun getPredRank (pd : Pred) : int =
+      case pd of
+        FF => 0
+      | NOT(NOT(x)) => 1
+      | AND(x, y) => 1
+      | NOT(OR(x, y)) => 1
+      | NOT(COND(x, y)) => 1
+      | OR(x, y) => 2
+      | NOT(AND(x, y)) => 2
+      | COND(x, y) => 2
+      | BIC(x, y) => 2
+      | NOT(BIC(x, y)) => 2
+      | EX(x, p) => 3
+      | NOT(ALL(x, p)) => 3
+      | ALL(x, p) => 4
+      | NOT(EX(x, p)) => 4
+      | ATOM(a, l) => 5
+      | NOT(ATOM(a, l)) => 5
+      | _ => raise FatalError
+
+    fun sortPreds (pl: Pred list) = ListMergeSort.sort (fn (x, y) => (getPredRank x) > (getPredRank y)) pl
+
+    type EdgeList = (int * int) list
+    type VertexList = (int * Pred) list
+    type FormulaSet = Pred list
+
+    fun applyElongation (pd: Pred) =
+      case pd of
+        NOT(NOT(x)) => [x]
+      | AND(x, y) => [x, y]
+      | NOT(OR(x, y))=> [NOT(x), NOT(y)]
+      | NOT(COND(x, y)) => [x, NOT(y)]
+      | _ => raise FatalError
+
+
+    fun applyBranching (pd: Pred) =
+      case pd of
+        NOT(AND(x, y)) => (NOT(x), NOT(y))
+      | OR(x, y) => (x, y)
+      | COND(x, y) => (NOT(x), y)
+      | BIC(x, y) => (AND(x, y), AND(NOT(x), NOT(y)))
+      | NOT(BIC(x, y)) => (AND(x, NOT(y)), AND(NOT(x), y))
+      | _ => raise FatalError
+
+    fun applyExistential (pd: Pred) (c: term) =
+      case pd of
+        EX(VAR(x), p) => substPred [(x, c)] p
+      | NOT(ALL(VAR(x), p)) => substPred [(x, c)] (NOT(p))
+      | _ => raise FatalError
+
+    fun applyUniversal (pd: Pred) (x1: term) =
+      case pd of
+        ALL(VAR(x), p) => substPred [(x, x1)] p
+      | NOT(EX(VAR(x), p)) => substPred [(x, x1)] (NOT(p))
+      | _ => raise FatalError
+
+    fun checkUnification (l: FormulaSet) (pd: Pred) =
+      case l of
+        [] => NONE
+      | x :: xs => SOME((x, (mguPred x pd))) handle NotUnifiable => (checkUnification xs pd)
+
+    fun checkComplimentaryPair (fs: FormulaSet) =
+      case fs of
+        [] => NONE
+      | [a] => NONE
+      | NOT(p) :: xs => if checkMembership xs p then SOME((NOT(p), p)) else checkComplimentaryPair xs
+      | p :: xs => if checkMembership xs (NOT(p)) then SOME((p, NOT(p))) else checkComplimentaryPair xs
+
+    fun getVertexID (vl_: VertexList) (pd: Pred) : int =
+      case vl_ of
+        [] => raise FatalError
+      | (u, x) :: xs => if (x = pd) then u else (getVertexID xs pd)
+
+    val vl : VertexList ref = ref []
+    val dir : EdgeList ref = ref []
+    val ancestor : EdgeList ref = ref []
+    val undir : EdgeList ref = ref []
+    val nextID : int ref = ref 0
+
+    fun tableauMethod (*(vl: VertexList)*) (acf: FormulaSet) (*(dir: EdgeList) (ancestor: EdgeList) (undir: EdgeList)*)
+        (currentLeafID: int) (*(nextID: int)*) : unit =
+      case acf of
+        [] => ()
+      | FF :: xs => raise FatalError
+      | x :: xs => (case (checkComplimentaryPair acf) of
+                      SOME((x, y)) => (let
+                                        val u = getVertexID (!vl) x
+                                        val v = getVertexID (!vl) y
+                                        val _ = (vl := (!nextID, FF) :: (!vl))
+                                        val _ = (dir := (currentLeafID, !nextID) :: (!dir))
+                                        val _ = (undir := (u, v) :: (!undir))
+                                        val _ = (nextID := !nextID + 1)
+                                      in
+                                        ()
+                                      end)
+                    | NONE => if (getPredRank x) = 1 then (let
+                                                            val u = getVertexID (!vl) x
+                                                            val l = applyElongation x
+                                                            val _ = (vl := (!nextID, (hd l))::(!vl))
+                                                            val _ = (ancestor := (u, !nextID)::(!ancestor))
+                                                            val _ = (dir := (currentLeafID, !nextID)::(!dir))
+                                                            val _ = if (length l) = 2 then ( (vl := (!nextID+1, (hd (tl l)))::(!vl));
+                                                                                            ((ancestor := (u, !nextID+1)::(!ancestor)));
+                                                                                            (dir := (!nextID, !nextID+1)::(!dir))
+                                                                                          ) else ()
+                                                            val new = if (length l) = 1 then !nextID else !nextID+1
+                                                            val _ = (nextID := !nextID + (length l))
+                                                          in
+                                                            tableauMethod (sortPreds (l@xs)) new
+                                                          end)
+                              else if (getPredRank x) = 2 then (let
+                                                                  val u = getVertexID (!vl) x
+                                                                  val (left, right) = applyBranching x
+                                                                  val _ = (vl := (!nextID, left)::(!vl))
+                                                                  val _ = (vl := (!nextID+1, right)::(!vl))
+                                                                  val _ = (ancestor := (u, !nextID)::(!ancestor))
+                                                                  val _ = (ancestor := (u, !nextID+1)::(!ancestor))
+                                                                  val _ = (dir := (currentLeafID, !nextID)::(!dir))
+                                                                  val _ = (dir := (currentLeafID, !nextID+1)::(!dir))
+                                                                  val old = !nextID
+                                                                  val _ = (nextID := !nextID + 2)
+                                                                in
+                                                                  tableauMethod (sortPreds (left::xs)) old;
+                                                                  tableauMethod (sortPreds (right::xs)) (old+1)
+                                                                end)
+                              else if (getPredRank x) = 3 then (let
+                                                                  val u = getVertexID (!vl) x
+                                                                  val freshConst = CONST(Int.toString (!nextID))
+                                                                  val inst = applyExistential x freshConst
+                                                                  val _ = (vl := (!nextID, inst)::(!vl))
+                                                                  val _ = (ancestor := (u, !nextID)::(!ancestor))
+                                                                  val _ = (dir := (currentLeafID, !nextID)::(!dir))
+                                                                  val old = !nextID
+                                                                  val _ = (nextID := !nextID + 1)
+                                                                in
+                                                                  tableauMethod (sortPreds (inst::xs)) old
+                                                                end)
+                              else if (getPredRank x) = 4 then (let
+                                                                  val u = getVertexID (!vl) x
+                                                                  val newVar = VAR(Int.toString (!nextID))
+                                                                  val inst = applyUniversal x newVar
+                                                                  val _ = (vl := (!nextID, inst)::(!vl))
+                                                                  val _ = (ancestor := (u, !nextID)::(!ancestor))
+                                                                  val _ = (dir := (currentLeafID, !nextID)::(!dir))
+                                                                  val old = !nextID
+                                                                  val _ = (nextID := !nextID + 1)
+
+                                                                in
+                                                                  tableauMethod (sortPreds (inst::x::xs)) old;
+                                                                  ()
+                                                                end)
+                              else raise FatalError
+                   )
+
+    fun assignIDs (acf: FormulaSet) (id: int) : unit =
+      case acf of
+        [] => ()
+      | x :: xs => let
+                    val _ = (vl := (id, x)::(!vl))
+                  in
+                    assignIDs xs (id-1)
+                  end
+
+    fun assignDir (id: int) : unit =
+      case id of
+        0 => ()
+      | 1 => (dir := (0, 1) :: (!dir))
+      | n => let
+              val _ = (dir := (n-1, n) :: (!dir))
+            in
+              assignDir (id-1)
+            end
+
+    fun listToString (l: string list) =
+      case l of
+        [] => ""
+      | x :: nil => x
+      | x :: xs => x ^ "," ^ (listToString xs)
+
+    fun termToString (t: term) =
+      case t of
+        VAR(v) => v
+      | FUN(f, l) => f ^ "(" ^ (listToString (map termToString l)) ^ ")"
+      | CONST(c) => c
+
+    fun predToString (pd: Pred) : string =
+      case pd of
+        FF => " \\bot "
+      | ATOM(a, l) => a ^ "(" ^ (listToString (map termToString l)) ^ ")"
+      | NOT(x) => "\\neg " ^ (predToString x)
+      | AND(x, y) => "(" ^ (predToString x) ^ "\\wedge " ^ (predToString y) ^ ")"
+      | OR(x, y) => "(" ^ (predToString x) ^ "\\vee " ^ (predToString y) ^ ")"
+      | COND(x, y) => "(" ^ (predToString x) ^ "\\rightarrow " ^ (predToString y) ^ ")"
+      | BIC(x, y) => "(" ^ (predToString x) ^ "\\leftrightarrow " ^ (predToString y) ^ ")"
+      | ALL(VAR(x), p) => "\\forall " ^ x ^ "[" ^ (predToString p) ^ "]"
+      | EX(VAR(x), p) => "\\exists " ^ x ^ "[" ^ (predToString p) ^ "]"
+      | _ => raise FatalError
+
+    fun mktableau (l: Pred list, p: Pred, out: string) =
+      let
+        val acf = sortPreds (map rewriteITEpred (l @ [NOT(p)]))
+        val _ = print "Hi"
+        val _ = assignIDs acf ((length acf)-1)
+        val _ = print "Hi"
+        val _ = assignDir ((length acf)-1)
+        val _ = (nextID := (length acf))
+        val _ = print "Hi"
+        val _ = tableauMethod acf ((length acf)-1)
+        val (ids, preds) = ListPair.unzip (!vl)
+        val predStrings = map (fn s => "$" ^ s ^ "$") (map predToString preds)
+        val vls = ListPair.zip (ids, predStrings)
+        val _ = (ancestor := listDifference (!ancestor) (!dir))
+        val dot = dotFormatRepr vls (!dir) (!ancestor) (!undir)
+      in
+        output out dot
+      end
   end

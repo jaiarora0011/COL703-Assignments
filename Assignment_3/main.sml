@@ -19,13 +19,8 @@ val res_ = Bool.toString (argErrorChecks arg)
        | NotWFA => "NotWFA"
        | NotClosed => "NotClosed"
 
-val vl = [(0, "$a$"), (1, "$b$"), (2, "$c$"), (3, "$d$"), (4, "$e$")]
-val dir = [(0, 1), (1, 2), (2, 3), (3, 4)]
-val ancestor = [(0, 2), (1, 3)]
-val undir = [(2, 3)]
+val HENCE(l, p) = arg
 
-val res = dotFormatRepr vl dir ancestor undir;
-
-val _ = output out res;
+val _ = mktableau (l, p, out);
 
 OS.Process.exit(OS.Process.success): unit;
