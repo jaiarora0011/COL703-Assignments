@@ -1,4 +1,4 @@
-use "datatypes.sml";
+use "util.sml";
 (*open HashConsMap;*)
 
 structure MyFOL =
