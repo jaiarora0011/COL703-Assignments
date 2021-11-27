@@ -240,7 +240,8 @@ structure MyFOL =
       case (p1, p2) of
         (FF, FF) => []
       | (ATOM(a1, l1), ATOM(a2, l2)) => if (a1 <> a2) then raise NotUnifiable else mguHelper l1 l2 []
-      | (_, _) => raise FatalError
+      | (NOT(ATOM(a1, l1)), NOT(ATOM(a2, l2))) => if (a1 <> a2) then raise NotUnifiable else mguHelper l1 l2 []
+      | (_, _) => raise NotUnifiable
 
     fun rewriteITEpred(pd: Pred) =
       case pd of
@@ -326,8 +327,20 @@ structure MyFOL =
       case fs of
         [] => NONE
       | [a] => NONE
-      | NOT(p) :: xs => if checkMembership xs p then SOME((NOT(p), p)) else checkComplimentaryPair xs
-      | p :: xs => if checkMembership xs (NOT(p)) then SOME((p, NOT(p))) else checkComplimentaryPair xs
+      | NOT(ATOM(a, l)) :: xs => (case checkUnification xs (ATOM(a, l)) of
+                                  SOME((x, s)) => SOME((NOT(ATOM(a, l)), x, s))
+                                | NONE => checkComplimentaryPair xs)
+      | ATOM(a, l) :: xs => (case checkUnification xs (NOT(ATOM(a, l))) of
+                                  SOME((x, s)) => SOME((ATOM(a, l), x, s))
+                                | NONE => checkComplimentaryPair xs)
+      | _ :: xs => checkComplimentaryPair xs
+
+    fun checkComplimentaryPair_ (fs: FormulaSet) =
+      case fs of
+        [] => NONE
+      | [a] => NONE
+      | NOT(p) :: xs => if checkMembership xs p then SOME((NOT(p), p)) else checkComplimentaryPair_ xs
+      | p :: xs => if checkMembership xs (NOT(p)) then SOME((p, NOT(p))) else checkComplimentaryPair_ xs
 
     fun getVertexID (vl_: VertexList) (pd: Pred) : int =
       case vl_ of
@@ -339,16 +352,57 @@ structure MyFOL =
     val ancestor : EdgeList ref = ref []
     val undir : EdgeList ref = ref []
     val nextID : int ref = ref 0
+    val acc_sub : substitution ref = ref []
+
+    fun replacePred (vl_: VertexList) (pd: Pred) (id: int) =
+      case vl_ of
+        [] => []
+      | (u, x) :: xs => if u = id then (u, pd) :: xs else (u, x) :: (replacePred xs pd id)
+
+    fun listToString (l: string list) =
+      case l of
+        [] => ""
+      | x :: nil => x
+      | x :: xs => x ^ "," ^ (listToString xs)
+
+    fun termToString (t: term) =
+      case t of
+        VAR(v) => v
+      | FUN(f, l) => f ^ "(" ^ (listToString (map termToString l)) ^ ")"
+      | CONST(c) => c
+
+    fun predToString (pd: Pred) : string =
+      case pd of
+        FF => " \\bot "
+      | ATOM(a, l) => a ^ "(" ^ (listToString (map termToString l)) ^ ")"
+      | NOT(x) => "\\neg " ^ (predToString x)
+      | AND(x, y) => "(" ^ (predToString x) ^ "\\wedge " ^ (predToString y) ^ ")"
+      | OR(x, y) => "(" ^ (predToString x) ^ "\\vee " ^ (predToString y) ^ ")"
+      | COND(x, y) => "(" ^ (predToString x) ^ "\\rightarrow " ^ (predToString y) ^ ")"
+      | BIC(x, y) => "(" ^ (predToString x) ^ "\\leftrightarrow " ^ (predToString y) ^ ")"
+      | ALL(VAR(x), p) => "\\forall " ^ x ^ "[" ^ (predToString p) ^ "]"
+      | EX(VAR(x), p) => "\\exists " ^ x ^ "[" ^ (predToString p) ^ "]"
+      | _ => raise FatalError
+
+    fun replacePredsInVL (vl_: VertexList) (s: substitution) =
+      case vl_ of
+        [] => []
+      | (u, x) :: xs => (u, (substPred s x)) :: (replacePredsInVL xs s)
 
     fun tableauMethod (*(vl: VertexList)*) (acf: FormulaSet) (*(dir: EdgeList) (ancestor: EdgeList) (undir: EdgeList)*)
         (currentLeafID: int) (*(nextID: int)*) : unit =
-      case acf of
+      let
+        val acf_ = (map (substPred (!acc_sub)) acf)
+      in
+        case acf_ of
         [] => ()
       | FF :: xs => raise FatalError
-      | x :: xs => (case (checkComplimentaryPair acf) of
-                      SOME((x, y)) => (let
-                                        val u = getVertexID (!vl) x
-                                        val v = getVertexID (!vl) y
+      | x :: xs => (case (checkComplimentaryPair acf_) of
+                      SOME((a, b, s)) => (let
+                                        val u = getVertexID (!vl) a
+                                        val v = getVertexID (!vl) b
+                                        val _ = (vl := (replacePredsInVL (!vl) s))
+                                        val _ = (acc_sub := s)
                                         val _ = (vl := (!nextID, FF) :: (!vl))
                                         val _ = (dir := (currentLeafID, !nextID) :: (!dir))
                                         val _ = (undir := (u, v) :: (!undir))
@@ -407,13 +461,14 @@ structure MyFOL =
                                                                   val _ = (dir := (currentLeafID, !nextID)::(!dir))
                                                                   val old = !nextID
                                                                   val _ = (nextID := !nextID + 1)
-
+                                                                  (*val _ = print ((listToString (map predToString acf_)) ^ "\n")*)
                                                                 in
-                                                                  tableauMethod (sortPreds (inst::x::xs)) old;
-                                                                  ()
+                                                                  tableauMethod (sortPreds ([inst] @ xs @ [x])) old
                                                                 end)
                               else raise FatalError
                    )
+      end
+
 
     fun assignIDs (acf: FormulaSet) (id: int) : unit =
       case acf of
@@ -434,40 +489,14 @@ structure MyFOL =
               assignDir (id-1)
             end
 
-    fun listToString (l: string list) =
-      case l of
-        [] => ""
-      | x :: nil => x
-      | x :: xs => x ^ "," ^ (listToString xs)
 
-    fun termToString (t: term) =
-      case t of
-        VAR(v) => v
-      | FUN(f, l) => f ^ "(" ^ (listToString (map termToString l)) ^ ")"
-      | CONST(c) => c
-
-    fun predToString (pd: Pred) : string =
-      case pd of
-        FF => " \\bot "
-      | ATOM(a, l) => a ^ "(" ^ (listToString (map termToString l)) ^ ")"
-      | NOT(x) => "\\neg " ^ (predToString x)
-      | AND(x, y) => "(" ^ (predToString x) ^ "\\wedge " ^ (predToString y) ^ ")"
-      | OR(x, y) => "(" ^ (predToString x) ^ "\\vee " ^ (predToString y) ^ ")"
-      | COND(x, y) => "(" ^ (predToString x) ^ "\\rightarrow " ^ (predToString y) ^ ")"
-      | BIC(x, y) => "(" ^ (predToString x) ^ "\\leftrightarrow " ^ (predToString y) ^ ")"
-      | ALL(VAR(x), p) => "\\forall " ^ x ^ "[" ^ (predToString p) ^ "]"
-      | EX(VAR(x), p) => "\\exists " ^ x ^ "[" ^ (predToString p) ^ "]"
-      | _ => raise FatalError
 
     fun mktableau (l: Pred list, p: Pred, out: string) =
       let
         val acf = sortPreds (map rewriteITEpred (l @ [NOT(p)]))
-        val _ = print "Hi"
         val _ = assignIDs acf ((length acf)-1)
-        val _ = print "Hi"
         val _ = assignDir ((length acf)-1)
         val _ = (nextID := (length acf))
-        val _ = print "Hi"
         val _ = tableauMethod acf ((length acf)-1)
         val (ids, preds) = ListPair.unzip (!vl)
         val predStrings = map (fn s => "$" ^ s ^ "$") (map predToString preds)

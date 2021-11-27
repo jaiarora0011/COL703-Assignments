@@ -1,6 +1,7 @@
 CM.make("$/basis.cm");
 CM.make("$/hash-cons-lib.cm");
 CM.make("$/smlnj-lib.cm");
+CM.make("$smlnj-tdp/back-trace.cm");
 use "foltableau.sml";
 open MyFOL;
 Control.Print.printDepth := 1000;
