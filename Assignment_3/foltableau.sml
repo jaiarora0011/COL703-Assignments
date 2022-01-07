@@ -402,7 +402,7 @@ structure MyFOL =
                                         val u = getVertexID (!vl) a
                                         val v = getVertexID (!vl) b
                                         val _ = (vl := (replacePredsInVL (!vl) s))
-                                        val _ = (acc_sub := s)
+                                        val _ = (acc_sub := compose s (!acc_sub))
                                         val _ = (vl := (!nextID, FF) :: (!vl))
                                         val _ = (dir := (currentLeafID, !nextID) :: (!dir))
                                         val _ = (undir := (u, v) :: (!undir))

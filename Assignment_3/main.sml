@@ -14,11 +14,6 @@ val out = if length l > 1 then hd (tl l) else "output/arg.dot";
 
 use inp;
 val res_ = Bool.toString (argErrorChecks arg)
-  handle NotVAR => "NotVAR"
-       | NotWFT => "NotWFT"
-       | NotWFP => "NotWFP"
-       | NotWFA => "NotWFA"
-       | NotClosed => "NotClosed"
 
 val HENCE(l, p) = arg
 

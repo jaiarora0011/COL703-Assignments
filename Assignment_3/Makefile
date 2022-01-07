@@ -14,6 +14,4 @@ clean:
 test: $(OUTPUT)
 
 output/%.dot: testcases/%.sml
-	CM_VERBOSE=false sml main.sml $< $@
-	dot2tex $@ > $@.tex
-	cd output && pdflatex $*.dot.tex
+	-CM_VERBOSE=false timeout 10 sml main.sml $< $@ && dot2tex $@ > $@.tex && cd output && pdflatex $*.dot.tex

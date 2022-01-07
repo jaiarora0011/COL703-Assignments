@@ -1,0 +1,1 @@
+val arg = HENCE([ALL(VAR("x"), COND(ATOM("F", [VAR("x")]), ATOM("G", [VAR("x")]))), EX(VAR("x"), AND(ATOM("F", [VAR("x")]), ATOM("H", [VAR("x")])))], EX(VAR("x"), AND(ATOM("F", [VAR("x")]), ATOM("H", [VAR("x")]))) );
